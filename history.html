@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historical Rates - Global Currency Converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Roboto:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1 class="site-title">Global Currency Converter &amp; Historical Rate Visualizer</h1>
+      <nav aria-label="Main navigation">
+        <a href="index.html">Converter</a>
+        <a href="history.html" class="active">Historical Rates</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <div id="history-alert" class="alert hidden" role="alert" aria-live="polite"></div>
+
+    <section class="card" aria-label="Historical rate controls">
+      <h2>Historical Exchange Rate Chart</h2>
+      <form id="history-form" class="converter-form">
+        <div class="currency-row">
+          <div class="form-group">
+            <label for="hist-from">From</label>
+            <select id="hist-from" name="from">
+              <option value="USD" selected>USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="CHF">CHF</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="hist-to">To</label>
+            <select id="hist-to" name="to">
+              <option value="USD">USD</option>
+              <option value="EUR" selected>EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="CHF">CHF</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="hist-range">Timeframe</label>
+            <select id="hist-range" name="range">
+              <option value="7">Last 7 Days (Weekly)</option>
+              <option value="30" selected>Last 30 Days (Monthly)</option>
+              <option value="365">Last 365 Days (Yearly)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button type="submit" class="btn btn-primary">Load Chart</button>
+        </div>
+      </form>
+
+      <div id="history-loading" class="loading hidden">Loading historical series...</div>
+
+      <div class="chart-wrapper" style="position: relative; height: 320px; margin-top: 1.25rem;">
+        <canvas id="rate-chart"></canvas>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 1.5rem;" aria-label="Specific historical date lookup">
+      <h2>Specific Historical Date Lookup</h2>
+      <form id="specific-date-form" class="converter-form">
+        <div class="currency-row">
+          <div class="form-group">
+            <label for="specific-date">Select Date</label>
+            <input type="date" id="specific-date" name="date" required />
+          </div>
+          <div class="form-group" style="align-self: flex-end;">
+            <button type="submit" class="btn btn-secondary">Check Rate</button>
+          </div>
+        </div>
+      </form>
+      <p id="specific-date-result" class="rate-info" style="margin-top: 0.75rem;"></p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { getHistoricalRange, getRateOnDate } from './js/CurrencyService.mjs';
+    import { renderRateChart } from './js/ChartManager.mjs';
+
+    const historyForm = document.querySelector('#history-form');
+    const fromSelect = document.querySelector('#hist-from');
+    const toSelect = document.querySelector('#hist-to');
+    const rangeSelect = document.querySelector('#hist-range');
+    const chartCanvas = document.querySelector('#rate-chart');
+    const loadingEl = document.querySelector('#history-loading');
+    const alertEl = document.querySelector('#history-alert');
+
+    const dateForm = document.querySelector('#specific-date-form');
+    const dateInput = document.querySelector('#specific-date');
+    const dateResultEl = document.querySelector('#specific-date-result');
+
+    function showError(msg) {
+      alertEl.textContent = msg;
+      alertEl.classList.remove('hidden');
+    }
+
+    function clearError() {
+      alertEl.textContent = '';
+      alertEl.classList.add('hidden');
+    }
+
+    function formatDateISO(dateObj) {
+      return dateObj.toISOString().split('T')[0];
+    }
+
+    async function loadChart() {
+      clearError();
+      const fromCode = fromSelect.value;
+      const toCode = toSelect.value;
+      const days = Number(rangeSelect.value);
+
+      if (fromCode === toCode) {
+        showError('Please select two different currencies to compare historical rates.');
+        return;
+      }
+
+      const endDateObj = new Date();
+      const startDateObj = new Date();
+      startDateObj.setDate(endDateObj.getDate() - days);
+
+      loadingEl.classList.remove('hidden');
+      try {
+        const series = await getHistoricalRange(
+          formatDateISO(startDateObj),
+          formatDateISO(endDateObj),
+          fromCode,
+          toCode
+        );
+        renderRateChart(chartCanvas, series, `${fromCode} to ${toCode} (${days}d)`);
+      } catch (err) {
+        showError(err.message || 'Could not load historical rates.');
+      } finally {
+        loadingEl.classList.add('hidden');
+      }
+    }
+
+    historyForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loadChart();
+    });
+
+    dateForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+      const chosenDate = dateInput.value;
+      const fromCode = fromSelect.value;
+      const toCode = toSelect.value;
+
+      if (!chosenDate) return;
+      if (fromCode === toCode) {
+        showError('Please select two different currencies.');
+        return;
+      }
+
+      try {
+        const info = await getRateOnDate(chosenDate, fromCode, toCode);
+        dateResultEl.textContent = `On ${info.date}: 1 ${info.base} = ${info.rate} ${info.target}`;
+      } catch (err) {
+        showError(err.message || 'Could not retrieve rate for that date.');
+      }
+    });
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    dateInput.value = formatDateISO(yesterday);
+
+    loadChart();
+  </script>
+</body>
+</html>

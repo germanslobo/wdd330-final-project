@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Global Currency Converter & Historical Rate Visualizer</title>
+  <title>Global Currency Converter &amp; Historical Rate Visualizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -15,20 +15,90 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container">
+    <div class="container header-inner">
       <h1 class="site-title">Global Currency Converter &amp; Historical Rate Visualizer</h1>
       <nav aria-label="Main navigation">
-        <a href="index.html">Converter</a>
+        <a href="index.html" class="active">Converter</a>
         <a href="history.html">Historical Rates</a>
       </nav>
     </div>
   </header>
 
   <main class="container main-content">
-    <section id="converter-section" aria-label="Currency converter">
-      <h2>Live Currency Converter</h2>
-      <p>Initial project structure ready for Week 5 development.</p>
-    </section>
+    <div id="alert-banner" class="alert hidden" role="alert" aria-live="polite"></div>
+
+    <div class="dashboard-grid">
+      <section class="card converter-card" aria-label="Live currency converter">
+        <h2>Live Currency Converter</h2>
+        <form id="converter-form" class="converter-form">
+          <div class="form-group">
+            <label for="amount-input">Amount</label>
+            <input
+              type="number"
+              id="amount-input"
+              name="amount"
+              value="100"
+              min="0.01"
+              step="any"
+              required
+            />
+          </div>
+
+          <div class="currency-row">
+            <div class="form-group">
+              <label for="from-currency">From</label>
+              <select id="from-currency" name="fromCurrency"></select>
+            </div>
+
+            <button
+              type="button"
+              id="swap-btn"
+              class="btn btn-secondary swap-btn"
+              aria-label="Swap base and target currencies"
+              title="Swap currencies"
+            >
+              ⇄
+            </button>
+
+            <div class="form-group">
+              <label for="to-currency">To</label>
+              <select id="to-currency" name="toCurrency"></select>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <button type="submit" id="convert-btn" class="btn btn-primary">
+              Convert Now
+            </button>
+            <button type="button" id="favorite-btn" class="btn btn-outline">
+              ☆ Save Favorite
+            </button>
+          </div>
+        </form>
+
+        <div id="loading-indicator" class="loading hidden">Loading live rates...</div>
+
+        <div id="result-box" class="result-box">
+          <p id="conversion-result" class="conversion-result">—</p>
+          <p id="rate-info" class="rate-info"></p>
+        </div>
+      </section>
+
+      <aside class="sidebar-stack">
+        <section class="card" aria-label="Favorite currency pairs">
+          <h2>Favorite Pairs</h2>
+          <ul id="favorites-list" class="item-list"></ul>
+        </section>
+
+        <section class="card" aria-label="Recent conversion history">
+          <div class="section-header">
+            <h2>Recent Conversions</h2>
+            <button type="button" id="clear-history-btn" class="btn-link">Clear</button>
+          </div>
+          <ul id="history-list" class="item-list"></ul>
+        </section>
+      </aside>
+    </div>
   </main>
 </body>
 </html>
